@@ -1,0 +1,90 @@
+1)
+  Create function get_Exact_Date(@date smalldatetime,@date2 smalldatetime)
+ returns varchar(50)
+    as
+    begin
+    declare @date3 smalldatetime
+    Declare @month int,@year int,@day int
+
+     if @date>@date2
+     begin
+     set @date3=@date2
+     set @date2=@date
+     set @date=@date3
+     end
+
+    SELECT @month=datediff (MONTH,@date,@date2)
+    if dateadd(month,@month,@date) >@date2
+    begin
+    set @month=@month-1
+    end
+    set @day=DATEDIFF(day,dateadd(month,@month,@date),@date2)
+    set @year=@month/12
+    set @month=@month % 12
+    return (case 
+                when @year=0 then '' 
+                when @year=1 or @year%10 = 1 then convert(varchar(50),@year ) + 'рік' 
+                when @year%10 = 2 or @year%10 = 3 or @year%10 = 4 or @year%10 = 5 then convert(varchar(50),@year ) + ' роки '
+                when @year%10 = 12 or @year%10 = 13 or @year%10 = 14 or @year%10 = 15 or @year%10 = 16 or @year%10 = 17 or @year%10 = 18 or @year%10 = 19 then convert(varchar(50),@year ) + ' років ' 
+                ELSE convert(varchar(50),@year ) + ' років ' end)
+    + (case
+         when @month=0 then '' 
+         when @month=1 then convert(varchar(50),@month ) + ' місяць ' 
+         when @month=2 or @month=3 or @month=4  then convert(varchar(50),@month ) + ' місяці ' 
+         ELSE convert(varchar(50),@month ) + ' місяців ' end)
+    + (case 
+        when @day=0 then '' 
+        when @day=1 or @day=21 or @day=31 then convert(varchar(50),@day ) + ' день ' 
+        when @day=22 or @day=23 or @day=24  then convert(varchar(50),@day ) + ' дні ' 
+        else convert(varchar(50),@day ) + ' днів ' end)
+
+    end
+
+
+
+
+2)
+CREATE FUNCTION NumberToWords(@Number as BIGINT)
+    RETURNS VARCHAR(1024)
+AS
+BEGIN
+      DECLARE @Below20 TABLE (ID int identity(0,1), Word varchar(32))
+      DECLARE @Below100 TABLE (ID int identity(2,1), Word varchar(32))
+      INSERT @Below20 (Word) VALUES
+                        ( 'нуль'), ('один'),( 'два' ), ( 'три'),
+                        ( 'чотири' ), ( 'пять' ), ( 'шість' ), ( 'сім' ),
+                        ( 'вісім'), ( 'девять'), ( 'десять'), ( 'одинадцять' ),
+                        ( 'дванадцять' ), ( 'тринадцять' ), ( 'чотирнадцять'),
+                        ( 'пятнадцять' ), ('шістнадцять' ), ( 'сімнадцять'),
+                        ('вісімнадцять' ), ( 'девятнадцять' )
+       INSERT @Below100 VALUES ('двадцать'), ('тридцять'),('сорок'), ('пятдесят'),
+                               ('шістдесят'), ('сімдесят'), ('вісімдесят'), ('девяносто')
+DECLARE @langvich varchar(1024) =
+(
+  SELECT Case
+    WHEN @Number = 0 THEN  ''
+    WHEN @Number BETWEEN 1 AND 19
+      THEN (SELECT Word FROM @Below20 WHERE ID=@Number)
+   WHEN @Number BETWEEN 20 AND 99  
+     THEN  (SELECT Word FROM @Below100 WHERE ID=@Number/10)+ '-' +
+           dbo.NumberToWords( @Number % 10)
+    ELSE ' INVALID INPUT' END
+)
+SELECT @langvich = RTRIM(@langvich)
+SELECT @langvich = RTRIM(LEFT(@langvich,len(@langvich)-1)) WHERE RIGHT(@langvich,1)='-' 
+RETURN (@langvich)
+END
+GO
+
+3)
+CREATE FUNCTION Salarys (@id int,@datastart DATE, @dataend DATE)  
+RETURNS TABLE  
+AS  
+RETURN   
+(   
+    SELECT e.emp_no, e.from_date, e.to_date, e.salary
+    FROM Employees.salaries as e   
+    WHERE e.emp_no = @id and e.from_date = @datastart and e.to_date = @dataend
+    GROUP BY e.emp_no ,e.from_date, e.to_date,e.salary
+);  
+GO  
